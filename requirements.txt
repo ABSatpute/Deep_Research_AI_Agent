@@ -1,0 +1,11 @@
+langgraph>=0.0.40
+langchain>=0.2.0
+langchain_community>=0.2.0
+langchain_groq>=0.1.4
+langsmith>=0.1.17
+tavily-python>=0.3.0
+openai>=1.30.1
+tqdm>=4.66.4
+requests>=2.31.0
+python-dotenv>=1.0.1
+google-colab
