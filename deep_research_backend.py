@@ -20,6 +20,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
 
 load_dotenv()
+os.environ['LANGCHAIN_PROJECT'] = 'deep research agent'
 
 # -------------------
 # 1. LLM
@@ -229,4 +230,5 @@ def retrieve_all_threads():
 #         break
     
 #     response = deep_research.invoke({'messages': HumanMessage(content=user_message)})
+
 #     print("AI:", response["messages"][-1].content)
