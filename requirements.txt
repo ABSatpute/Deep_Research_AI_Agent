@@ -98,8 +98,6 @@ Pygments==2.19.2
 pyppeteer==2.0.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
-pytz==2025.2
-pywin32==311
 PyYAML==6.0.2
 pyzmq==27.1.0
 referencing==0.36.2
@@ -136,3 +134,4 @@ xxhash==3.5.0
 yarl==1.20.1
 zipp==3.23.0
 zstandard==0.25.0
+
