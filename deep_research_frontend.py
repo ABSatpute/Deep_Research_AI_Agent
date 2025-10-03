@@ -1,7 +1,17 @@
 import streamlit as st
-from deep_research_backend import research_agent, retrieve_all_threads, generate_chat_title_from_messages
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
-import uuid
+import sys
+import os
+
+# Add error handling for missing dependencies
+try:
+    from deep_research_backend import research_agent, retrieve_all_threads, generate_chat_title_from_messages
+    from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+    import uuid
+except ImportError as e:
+    st.error(f"❌ Missing dependency: {e}")
+    st.stop()
+
+# Your existing frontend code continues...
 
 
 # ************************* Uility functions *****************************************
@@ -191,4 +201,5 @@ if user_input:
             st.session_state['chat_title_meta'][thread_id] = total_messages
         except Exception:
             # On LLM failure, keep previous title (no crash)
+
             pass
