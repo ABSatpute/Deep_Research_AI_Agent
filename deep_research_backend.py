@@ -18,17 +18,68 @@ import re
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
+import streamlit as st
 
 load_dotenv()
-os.environ['LANGCHAIN_PROJECT'] = 'deep research agent'
 
 # -------------------
-# 1. LLM
+# 1. LLM Initialization with Error Handling
 # -------------------
-llm = ChatOpenAI()
-llm_summarize = ChatGroq(model="openai/gpt-oss-120b")
-llm_answer = ChatGroq(model="meta-llama/llama-4-scout-17b-16e-instruct")
-title_llm = ChatGroq(model="openai/gpt-oss-120b")
+def get_llm_with_fallback():
+    """Get Groq LLM with proper error handling for Streamlit"""
+    try:
+        # Try to get API key from Streamlit secrets first, then environment
+        groq_api_key = st.secrets.get("GROQ_API_KEY", os.getenv("GROQ_API_KEY"))
+        
+        if not groq_api_key:
+            # If running in Streamlit, show error
+            if 'streamlit' in sys.modules:
+                st.error("""
+                🔐 **Groq API Key Missing**
+                
+                Please set GROQ_API_KEY in your Streamlit secrets:
+                1. Go to your app settings
+                2. Click on 'Secrets'  
+                3. Add: `GROQ_API_KEY = "your_key_here"`
+                """)
+            raise ValueError("GROQ_API_KEY not found")
+            
+        return ChatGroq(
+            model="openai/gpt-oss-120b",
+            groq_api_key=groq_api_key
+        )
+    except Exception as e:
+        # Fallback to OpenAI if Groq fails
+        openai_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
+        if openai_key:
+            return ChatOpenAI(model="gpt-3.5-turbo")
+        else:
+            raise e
+
+def get_llm_answer():
+    """Get answer LLM with error handling"""
+    try:
+        groq_api_key = st.secrets.get("GROQ_API_KEY", os.getenv("GROQ_API_KEY"))
+        if groq_api_key:
+            return ChatGroq(
+                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                groq_api_key=groq_api_key
+            )
+    except:
+        pass
+    
+    # Fallback
+    return get_llm_with_fallback()
+
+# Initialize LLMs safely
+try:
+    llm = ChatOpenAI()  # This might also need API key handling
+except:
+    llm = get_llm_with_fallback()
+
+llm_summarize = get_llm_with_fallback()
+llm_answer = get_llm_answer()
+title_llm = get_llm_with_fallback()
 
 def generate_chat_title_from_messages(messages: list) -> str:
     """
@@ -60,6 +111,7 @@ def generate_chat_title_from_messages(messages: list) -> str:
         # fallback to a truncated version of the most recent snippet
         return relevant[:50].strip() + "..."
 
+# Rest of your code remains the same...
 # -------------------
 # 2. Tools
 # -------------------
@@ -84,14 +136,10 @@ def deep_research(query: str) -> dict:
 
         # Summarize
         if len(cleaned) < 1000:
-            from langchain_groq import ChatGroq
-            llm_summarize = ChatGroq(model="openai/gpt-oss-120b")
             summary = llm_summarize.invoke(cleaned).content
         else:
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
             chunks = [Document(page_content=t) for t in text_splitter.split_text(cleaned)]
-            from langchain_groq import ChatGroq
-            llm_summarize = ChatGroq(model="openai/gpt-oss-120b")
             summarize_chain = load_summarize_chain(llm_summarize, chain_type="map_reduce")
             summary = summarize_chain.run(chunks)
 
@@ -140,35 +188,12 @@ def get_stock_price(symbol: str) -> dict:
 
 @tool
 def get_weather_data(city: str) -> str:
-  """
-    Fetch current weather information for a given location.
-
-    This tool queries a weather data source (e.g., an API or local service)
-    to return the latest weather conditions such as temperature, humidity,
-    and description. It is intended to provide real-time information that
-    the LLM alone cannot generate reliably.
-
-    Parameters
-    ----------
-    location : str
-        The name of the city, region, or location for which to fetch
-        the weather information.
-
-
-    Notes
-    -----
-    - This tool should be invoked by the workflow when weather data
-      is specifically requested.
-    - The function does not modify or return the entire workflow state,
-      only updates with relevant weather information.
-    - Error handling (e.g., invalid location, API errors) should be added
-      in production.
     """
-  url = f'https://api.weatherstack.com/current?access_key=42313f0f342da949f4773a35db13124f={city}'
-    
-  response = requests.get(url)
-
-  return response.json()
+    Fetch current weather information for a given location.
+    """
+    url = f'https://api.weatherstack.com/current?access_key=42313f0f342da949f4773a35db13124f={city}'
+    response = requests.get(url)
+    return response.json()
 
 tools = [deep_research, get_stock_price, calculator, get_weather_data]
 llm_with_tools = llm.bind_tools(tools)
@@ -219,16 +244,3 @@ def retrieve_all_threads():
         all_thread.add(cheackpoint.config['configurable']['thread_id'])
         
     return list(all_thread)
-# out = deep_research.invoke({"messages":[HumanMessage(content="hello!")]})
-# print(out['messages'][-1].content)
-
-# while True:
-#     user_message= input("Type Here :")
-#     print("User :", user_message)
-    
-#     if user_message.strip().lower() in ["exit", "q", "quit", "bye"]:
-#         break
-    
-#     response = deep_research.invoke({'messages': HumanMessage(content=user_message)})
-
-#     print("AI:", response["messages"][-1].content)
