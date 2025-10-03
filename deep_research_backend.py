@@ -21,7 +21,7 @@ import sqlite3
 import streamlit as st
 
 load_dotenv()
-os.environ['LANGCHAIN_PROJECT']= 'Streamlit Backend'
+os.environ['LANGCHAIN_PROJECT']= 'Streamlit Deep Research'
 # -------------------
 # 1. LLM Initialization with Error Handling
 # -------------------
@@ -244,4 +244,5 @@ def retrieve_all_threads():
         all_thread.add(cheackpoint.config['configurable']['thread_id'])
         
     return list(all_thread)
+
 
